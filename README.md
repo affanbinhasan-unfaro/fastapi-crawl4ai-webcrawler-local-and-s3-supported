@@ -1,5 +1,31 @@
 # Web Scraper API
 
+## Table of Contents
+
+- [Features](#features)
+- [Architecture](#architecture)
+- [Quick Start](#quick-start)
+  - [Prerequisites](#1-prerequisites)
+  - [Installation](#2-installation)
+  - [Configuration](#3-configuration)
+  - [Run the Application](#4-run-the-application)
+- [API Endpoints](#api-endpoints)
+  - [Core Endpoints](#core-endpoints)
+  - [Data Types Extracted](#data-types-extracted)
+- [Storage Structure](#storage-structure)
+- [Error Handling](#error-handling)
+- [Configuration Options](#configuration-options)
+  - [Crawl Settings](#crawl-settings)
+  - [Storage Settings](#storage-settings)
+  - [API Settings](#api-settings)
+  - [Logging](#logging)
+- [Crawling Behavior](#crawling-behavior)
+- [Development](#development)
+  - [Running Tests](#running-tests)
+  - [Code Style](#code-style)
+- [Deployment](#deployment)
+- [License](#license)
+
 A FastAPI-based web scraper application that uses crawl4AI to extract comprehensive data from websites and store it in AWS S3 or local storage with structured file organization.
 
 ## Features

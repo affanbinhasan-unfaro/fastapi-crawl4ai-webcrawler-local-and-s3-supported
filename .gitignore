@@ -51,8 +51,7 @@ Thumbs.db
 logs/
 
 # Outputs (local storage)
-outputs/
-*.json
+outputs/*
 
 # Temporary files
 *.tmp
