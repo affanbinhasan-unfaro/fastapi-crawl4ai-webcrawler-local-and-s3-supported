@@ -22,6 +22,7 @@
 - [Crawling Behavior](#crawling-behavior)
 - [Development](#development)
   - [Running Tests](#running-tests)
+  - [Test Suite Structure](#test-suite-structure)
   - [Code Style](#code-style)
 - [Deployment](#deployment)
 - [License](#license)
@@ -37,7 +38,6 @@ A FastAPI-based web scraper application that uses crawl4AI to extract comprehens
 - **Async Processing**: Supports both synchronous and asynchronous scraping with concurrency control
 - **Error Handling**: Comprehensive error handling with retry mechanisms
 - **API Documentation**: Auto-generated OpenAPI documentation
-- **Health Monitoring**: Built-in health check endpoints
 - **Configurable**: Environment-based configuration
 
 ## Architecture
@@ -46,14 +46,63 @@ A FastAPI-based web scraper application that uses crawl4AI to extract comprehens
 webscraper/
 ├── app/
 │   ├── api/           # FastAPI routes and endpoints
+│   │   └── routes.py
 │   ├── core/          # Configuration and exceptions
+│   │   ├── config.py
+│   │   └── exceptions.py
 │   ├── models/        # Pydantic data models
+│   │   └── schemas.py
 │   ├── services/      # Business logic services
+│   │   ├── scraper.py
+│   │   ├── data_processor.py
+│   │   ├── storage_service.py
+│   │   ├── local_storage_service.py
+│   │   └── s3_service.py
 │   └── utils/         # Utility functions and helpers
+│       ├── helpers.py
+│       └── logger.py
 ├── outputs/           # Local storage directory (when S3 disabled)
 ├── requirements.txt   # Python dependencies
 ├── env.example        # Environment configuration template
-└── README.md         # This file
+├── start_app.py       # API server startup script
+├── tests/             # Test suite (see below)
+└── README.md          # This file
+```
+
+### Test Suite Structure
+
+```
+tests/
+├── __init__.py
+├── conftest.py           # Pytest configuration and fixtures
+├── README.md             # Test suite documentation
+├── run_tests.py          # Test runner script
+│
+├── unit/                 # Unit tests (individual components)
+│   ├── __init__.py
+│   ├── test_contact_extraction.py
+│   ├── test_crawler.py
+│   ├── test_fixes.py
+│   └── test_storage.py
+│
+├── integration/          # Integration tests (end-to-end workflows)
+│   ├── __init__.py
+│   ├── test_api_integration.py
+│   ├── test_contact_with_real_website.py
+│   ├── test_scraper_integration.py
+│   ├── test_simplified_api.py
+│   └── test_updated_scraper.py
+│
+├── debug/                # Debug scripts (diagnostic tools)
+│   ├── __init__.py
+│   ├── debug_contact_simple.py
+│   ├── debug_contact_step_by_step.py
+│   ├── debug_crawler.py
+│   ├── debug_links.py
+│   └── debug_storage_issue.py
+│
+└── api/                  # API-specific tests (future)
+    └── __init__.py
 ```
 
 ## Quick Start
@@ -69,7 +118,6 @@ webscraper/
 ```bash
 # Clone the repository
 git clone <repository-url>
-cd webscraper
 
 # Create virtual environment
 python -m venv venv
@@ -125,13 +173,10 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 The API will be available at:
 - **API**: http://localhost:8000
 - **Documentation**: http://localhost:8000/docs
-- **Alternative Docs**: http://localhost:8000/redoc
 
-## API Endpoints
+## API Endpoint
 
-### Core Endpoints
-
-#### POST `/api/v1/scrape`
+### POST `/api/v1/scrape`
 Scrape a website and store data in S3 or local storage.
 
 **Request Body:**
@@ -149,78 +194,30 @@ Scrape a website and store data in S3 or local storage.
   "status": "success",
   "company_name": "Example Corp",
   "url": "https://example.com",
-  "total_pages_crawled": 15,
-  "processing_time_seconds": 45.2,
-  "storage_locations": {
-    "text": "s3://bucket/example_corp/text/example_corp_20241201_143022.json",
-    "images": "s3://bucket/example_corp/images/example_corp_20241201_143022.json",
-    "contact": "s3://bucket/example_corp/contact/example_corp_20241201_143022.json",
-    "products": "s3://bucket/example_corp/products/example_corp_20241201_143022.json",
-    "social_media": "s3://bucket/example_corp/social_media/example_corp_20241201_143022.json",
-    "metadata": "s3://bucket/example_corp/metadata/example_corp_20241201_143022.json",
-    "raw_html": "s3://bucket/example_corp/raw_html/example_corp_20241201_143022.json",
-    "sitemap": "s3://bucket/example_corp/sitemap/example_corp_20241201_143022.json"
+  "timestamp": "2024-01-01T12:00:00.000Z",
+  "storage_files": {
+    "text": "file:///outputs/example_corp/text/example_corp_text_20240101_120000.json",
+    "images": "file:///outputs/example_corp/images/example_corp_images_20240101_120000.json",
+    "contact": "file:///outputs/example_corp/contact/example_corp_contact_20240101_120000.json"
+  },
+  "metadata": {
+    "extraction_method": "crawl4AI_HTTP_BeautifulSoup",
+    "total_pages_crawled": 5,
+    "processing_time_seconds": 12.34
   }
 }
 ```
 
-#### POST `/api/v1/scrape/async`
-Start asynchronous scraping (returns immediately).
-
-#### GET `/api/v1/companies/{company_name}/summary`
-Get summary of scraped data for a company.
-
-#### GET `/api/v1/companies/{company_name}/files`
-List all files for a company.
-
-#### GET `/api/v1/health`
-Health check endpoint.
-
-#### GET `/api/v1/storage/info`
-Get storage configuration information.
-
 ## Data Types Extracted
 
-### Text Content
-- Article text and paragraphs
-- Page titles and headings
-- Content from all crawled pages
-- Word counts and confidence scores
-
-### Images
-- Image URLs (converted to absolute URLs)
-- Alt text and titles
-- Dimensions and CSS classes
-- Source page information
-
-### Contact Information
-- Email addresses (regex pattern matching)
-- Phone numbers (multiple format support)
-- Physical addresses (street address detection)
-
-### Product Information
-- Product names and descriptions
-- Pricing information (when available)
-- Product cards and listings
-
-### Social Media Links
-- Facebook, Twitter, LinkedIn, Instagram, YouTube, TikTok, Pinterest, GitHub
-- Platform-specific URLs with link text
-
-### Metadata
-- Page titles and meta descriptions
-- Keywords and Open Graph tags
-- Canonical URLs and language information
-- Robots meta tags
-
-### Raw HTML
-- Complete HTML content for each crawled page
-- Preserved for advanced processing
-
-### Sitemap
-- Crawl structure and page relationships
-- Data coverage summary
-- Link discovery information
+- **Text Content**: Article text, paragraphs, titles, headings
+- **Images**: Image URLs, alt text, dimensions
+- **Contact Information**: Email addresses, phone numbers
+- **Product Information**: Product names, descriptions, prices (when available)
+- **Social Media Links**: Facebook, Twitter, LinkedIn, Instagram, etc.
+- **Metadata**: Page titles, meta descriptions, Open Graph tags
+- **Raw HTML**: Complete HTML content for each crawled page
+- **Sitemap**: Crawl structure and page relationships
 
 ## Storage Structure
 
@@ -300,8 +297,44 @@ The scraper uses crawl4ai for comprehensive website crawling:
 # Install test dependencies
 pip install pytest pytest-asyncio
 
-# Run tests
-pytest
+# Run all tests
+pytest tests/
+```
+
+### Test Suite Structure
+
+```
+tests/
+├── __init__.py
+├── conftest.py           # Pytest configuration and fixtures
+├── README.md             # Test suite documentation
+├── run_tests.py          # Test runner script
+│
+├── unit/                 # Unit tests (individual components)
+│   ├── __init__.py
+│   ├── test_contact_extraction.py
+│   ├── test_crawler.py
+│   ├── test_fixes.py
+│   └── test_storage.py
+│
+├── integration/          # Integration tests (end-to-end workflows)
+│   ├── __init__.py
+│   ├── test_api_integration.py
+│   ├── test_contact_with_real_website.py
+│   ├── test_scraper_integration.py
+│   ├── test_simplified_api.py
+│   └── test_updated_scraper.py
+│
+├── debug/                # Debug scripts (diagnostic tools)
+│   ├── __init__.py
+│   ├── debug_contact_simple.py
+│   ├── debug_contact_step_by_step.py
+│   ├── debug_crawler.py
+│   ├── debug_links.py
+│   └── debug_storage_issue.py
+│
+└── api/                  # API-specific tests (future)
+    └── __init__.py
 ```
 
 ### Code Style
